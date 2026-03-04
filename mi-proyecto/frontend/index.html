@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Foro de Mensajes</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        
+    </style>
+</head>
+<body>
+    <div class="container">
+        <section id="auth-section" class="card">
+            <h2>Bienvenido al Muro</h2>
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('login')">LogIn</button>
+                <button class="tab-btn" onclick="switchTab('register')">Registrarse</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="login-form" class="auth-form" onsubmit="handleLogin(event)">
+                <input type="email" name="email" placeholder="Correo electrónico" required>
+                <input type="password" name="password" placeholder="Contraseña" required>
+                <button type="submit" class="btn-primary">Iniciar Sesión</button>
+            </form>
+
+            <!-- Registration Form (initially hidden) -->
+            <form id="register-form" class="auth-form hidden" onsubmit="handleRegister(event)">
+                <input type="text" name="username" placeholder="Nombre de usuario" required>
+                <input type="email" name="email" placeholder="Correo electrónico" required>
+                <input type="password" name="password" placeholder="Contraseña" required>
+                <button type="submit" class="btn-primary">Registrarse</button>
+            </form>
+        </section>
+
+        <section id="wall-section" class="hidden">
+            <header class="wall-header">
+                <h2>Muro Público</h2>
+                <button class="btn-secondary" onclick="logout()">Cerrar Sesión</button>
+            </header>
+
+            <div class="card publish-area">
+                <form id="message-form" onsubmit="publishMessage(event)">
+                    <textarea name="message" placeholder="¿Qué estás pensando?" rows="3" required></textarea>
+                    <button type="submit" class="btn-primary">Publicar Mensaje</button>
+                </form>
+                <div class="clear"></div>
+            </div>
+
+            <div id="messages-container">
+                <!-- Messages will be dynamically added here -->
+            </div>
+        </section>
+    </div>
+
+    <script>
+ 
+    // API base URL
+    const API_BASE = 'http://localhost:3000/api';
+    
+    // Store current user
+    let currentUser = null;
+    
+    // Switch between login/register tabs
+    function switchTab(type) {
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        
+        if (type === 'login') {
+            loginForm.classList.remove('hidden');
+            registerForm.classList.add('hidden');
+            tabButtons[0].classList.add('active');
+            tabButtons[1].classList.remove('active');
+        } else {
+            loginForm.classList.add('hidden');
+            registerForm.classList.remove('hidden');
+            tabButtons[1].classList.add('active');
+            tabButtons[0].classList.remove('active');
+        }
+    }
+
+    // Handle login
+    async function handleLogin(event) {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        const email = formData.get('email');
+        const password = formData.get('password');
+        
+        try {
+            const response = await fetch(`${API_BASE}/auth/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email, password })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                currentUser = data.user;
+                document.getElementById('auth-section').classList.add('hidden');
+                document.getElementById('wall-section').classList.remove('hidden');
+                loadMessages(); // Load messages for the user
+            } else {
+                alert(data.message || 'Error al iniciar sesión');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error de conexión con el servidor');
+        }
+    }
+
+    // Handle registration
+    async function handleRegister(event) {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        const username = formData.get('username');
+        const email = formData.get('email');
+        const password = formData.get('password');
+        
+        try {
+            const response = await fetch(`${API_BASE}/auth/register`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, email, password })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                currentUser = data.user;
+                document.getElementById('auth-section').classList.add('hidden');
+                document.getElementById('wall-section').classList.remove('hidden');
+                loadMessages(); // Load messages for the new user
+            } else {
+                alert(data.message || 'Error al registrarse');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error de conexión con el servidor');
+        }
+    }
+
+    // Logout function
+    function logout() {
+        currentUser = null;
+        document.getElementById('auth-section').classList.remove('hidden');
+        document.getElementById('wall-section').classList.add('hidden');
+    }
+
+    // Format timestamp to relative time
+    function formatTime(dateString) {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffSecs = Math.floor(diffMs / 1000);
+        const diffMins = Math.floor(diffSecs / 60);
+        
+        if (diffMins < 1) return "ahora mismo";
+        if (diffMins < 60) return `Hace ${diffMins} min`;
+        if (diffMins < 1440) return `Hace ${Math.floor(diffMins/60)} h`;
+        return `Hace ${Math.floor(diffMins/1440)} días`;
+    }
+
+    // Load messages from API and display them
+    async function loadMessages() {
+        try {
+            const response = await fetch(`${API_BASE}/messages`);
+            const data = await response.json();
+            
+            const container = document.getElementById('messages-container');
+            container.innerHTML = '';
+            
+            if (!data.success || data.messages.length === 0) {
+                container.innerHTML = '<div class="no-messages">No hay mensajes aún. ¡Sé el primero en publicar!</div>';
+                return;
+            }
+            
+            data.messages.forEach(msg => {
+                const messageElement = document.createElement('div');
+                messageElement.className = 'message-card';
+                messageElement.innerHTML = `
+                    <div class="user-info">
+                        <div class="avatar">${msg.user.username.charAt(0).toUpperCase()}</div>
+                        <div>
+                            <div class="message-header">
+                                <strong>@${msg.user.username}</strong>
+                                <span class="timestamp">${formatTime(msg.timestamp)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="message-content">${msg.content}</p>
+                `;
+                container.appendChild(messageElement);
+            });
+        } catch (error) {
+            console.error('Error loading messages:', error);
+            document.getElementById('messages-container').innerHTML = 
+                '<div class="no-messages">Error al cargar mensajes</div>';
+        }
+    }
+
+    // Publish message
+    async function publishMessage(event) {
+        event.preventDefault();
+        const textarea = event.target.querySelector('textarea');
+        const content = textarea.value.trim();
+        
+        if (content && currentUser) {
+            try {
+                const response = await fetch(`${API_BASE}/messages`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        userId: currentUser.id, 
+                        content: content 
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Render updated messages
+                    loadMessages();
+                    // Clear textarea
+                    textarea.value = '';
+                } else {
+                    alert(data.message || 'Error al publicar mensaje');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error de conexión con el servidor');
+            }
+        }
+    }
+    
+    // Initialize the app
+    document.addEventListener('DOMContentLoaded',  () => {
+        // Load messages on page load
+        loadMessages();
+    });
+    </script>
+</body>
+</html>
