@@ -1,62 +1,3 @@
-/*const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
-const bcrypt = require('bcrypt'); // Para hashear contraseñas
-const app = express();
-
-app.use(express.json());
-
-// Conexión a DB (Persistencia en archivo)
-const db = new sqlite3.Database('./data/foro.db', (err) => {
-    if (err) console.error("Error abriendo DB", err);
-    console.log("Conectado a SQLite");
-});
-
-// Crear tablas iniciales
-db.serialize(() => {
-    db.run(`CREATE TABLE IF NOT EXISTS usuarios (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE,
-        password TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )`);
-
-    db.run(`CREATE TABLE IF NOT EXISTS mensajes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        texto TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(user_id) REFERENCES usuarios(id)
-    )`);
-});
-
-// --- RUTAS ---
-
-// Registro (Ejemplo de lógica inicial)
-app.post('/api/register', async (req, res) => {
-    const { username, password } = req.body;
-    // TODO: Validar que no vengan vacíos
-    const hashedPassword = await bcrypt.hash(password, 10);
-    
-    const sql = `INSERT INTO usuarios (username, password) VALUES (?, ?)`;
-    db.run(sql, [username, hashedPassword], function(err) {
-        if (err) return res.status(400).json({ error: "El usuario ya existe" });
-        res.status(201).json({ id: this.lastID, message: "Usuario creado" });
-    });
-});
-
-// Listar mensajes (Público)
-app.get('/api/mensajes', (req, res) => {
-    const sql = `SELECT m.texto, m.created_at, u.username 
-                 FROM mensajes m JOIN usuarios u ON m.user_id = u.id 
-                 ORDER BY m.created_at DESC`;
-    db.all(sql, [], (err, rows) => {
-        if (err) return res.status(500).json({ error: "Error al obtener mensajes" });
-        res.json(rows);
-    });
-});
-
-app.listen(3000, () => console.log("Servidor en puerto 3000"));*/
-
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const bcrypt = require('bcrypt');
@@ -160,3 +101,4 @@ const PORT = 3000;
 app.listen(PORT, () => {
     console.log(`Backend de la Hackathon corriendo en http://localhost:${PORT}`);
 });
+
